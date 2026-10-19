@@ -1,29 +1,26 @@
--- Retail Sales SQL Analysis Project
--- Tools: MySQL
--- Dataset: Retail Sales Dataset
--- Author: Salahuddin K M
+-- Retail Sales SQL Analysis
+-- Database: MySQL
+-- Dataset: CSV files in ../datasets
+-- IDs are text in the source data (for example, C001, P001, S001, T00001).
+-- Keep them as VARCHAR so prefixes and leading zeros are preserved.
+-- When importing customers.csv, ignore its trailing empty CSV field if the
+-- import wizard detects it as an additional column.
 
--- Creating the database and using it
-CREATE DATABASE retail_sales_db;
-
+CREATE DATABASE IF NOT EXISTS retail_sales_db;
 USE retail_sales_db;
 
--- Tables creation
-
--- Customers Table
-CREATE TABLE customers (
-    customer_id INT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS customers (
+    customer_id VARCHAR(10) PRIMARY KEY,
     first_name VARCHAR(50),
     last_name VARCHAR(50),
     gender VARCHAR(10),
     birth_date DATE,
-    city VARCHAR(50),
+    city VARCHAR(100),
     join_date DATE
 );
 
--- Products Table
-CREATE TABLE products (
-    product_id INT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS products (
+    product_id VARCHAR(10) PRIMARY KEY,
     product_name VARCHAR(100),
     category VARCHAR(50),
     subcategory VARCHAR(50),
@@ -31,111 +28,102 @@ CREATE TABLE products (
     cost_price DECIMAL(10,2)
 );
 
--- Stores Table
-CREATE TABLE stores (
-    store_id INT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS stores (
+    store_id VARCHAR(10) PRIMARY KEY,
     store_name VARCHAR(100),
-    city VARCHAR(50),
+    city VARCHAR(100),
     region VARCHAR(50)
 );
 
--- Transactions table
-CREATE TABLE transactions (
-    transaction_id INT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS transactions (
+    transaction_id VARCHAR(12) PRIMARY KEY,
     transaction_date DATE,
-    customer_id INT,
-    product_id INT,
-    store_id INT,
+    customer_id VARCHAR(10),
+    product_id VARCHAR(10),
+    store_id VARCHAR(10),
     quantity INT,
     discount DECIMAL(5,2),
-    payment_method VARCHAR(50)
+    payment_method VARCHAR(50),
+    CONSTRAINT fk_transactions_customer
+        FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+    CONSTRAINT fk_transactions_product
+        FOREIGN KEY (product_id) REFERENCES products(product_id),
+    CONSTRAINT fk_transactions_store
+        FOREIGN KEY (store_id) REFERENCES stores(store_id)
 );
 
-SELECT COUNT(*) FROM customers;
-SELECT COUNT(*) FROM products;
-SELECT COUNT(*) FROM stores;
-SELECT COUNT(*) FROM transactions;
-
--- Sales Master Table(analysis dataset)
-CREATE TABLE sales_analysis AS
+-- Analytical view.
+-- The source discount is stored as a fraction (for example, 0.10 = 10%).
+-- Profit is calculated after discount, before any other operating costs.
+CREATE OR REPLACE VIEW sales_master AS
 SELECT
-t.ï»¿transaction_id,
-t.transaction_date,
-MONTH(t.transaction_date) AS month,
-p.ProductName,
-p.Category,
-s.Region,
-t.quantity,
-p.UnitPrice,
-p.CostPrice,
-t.discount,
-(t.quantity * p.UnitPrice * (1 - t.discount)) AS revenue,
-((p.UnitPrice - p.CostPrice) * t.quantity) AS profit
-FROM transactions t
-JOIN products p ON t.product_id = p.ProductID
-JOIN stores s ON t.store_id = s.StoreID;
+    t.transaction_id,
+    t.transaction_date,
+    YEAR(t.transaction_date) AS year,
+    MONTH(t.transaction_date) AS month,
+    p.product_name,
+    p.category,
+    s.region,
+    t.quantity,
+    p.unit_price,
+    p.cost_price,
+    t.discount,
+    (t.quantity * p.unit_price * (1 - t.discount)) AS revenue,
+    (t.quantity * (p.unit_price * (1 - t.discount) - p.cost_price)) AS profit
+FROM transactions AS t
+JOIN products AS p
+    ON t.product_id = p.product_id
+JOIN stores AS s
+    ON t.store_id = s.store_id;
 
--- Master Dataset view
-CREATE VIEW sales_master AS
+-- Row counts
+SELECT COUNT(*) AS customer_rows FROM customers;
+SELECT COUNT(*) AS product_rows FROM products;
+SELECT COUNT(*) AS store_rows FROM stores;
+SELECT COUNT(*) AS transaction_rows FROM transactions;
+
+-- KPIs
+SELECT ROUND(SUM(revenue), 2) AS total_revenue
+FROM sales_master;
+
+SELECT COUNT(DISTINCT transaction_id) AS total_transactions
+FROM transactions;
+
+SELECT SUM(quantity) AS total_units_sold
+FROM transactions;
+
+SELECT ROUND(SUM(profit), 2) AS total_profit
+FROM sales_master;
+
+-- Sales by region
 SELECT
-t.ï»¿transaction_id,
-t.transaction_date,
-t.customer_id,
-p.ProductName,
-p.Category,
-s.Region,
-t.quantity,
-p.UnitPrice,
-t.discount,
-(t.quantity * p.UnitPrice * (1 - t.discount)) AS revenue
-FROM transactions t
-JOIN products p ON t.product_id = p.ProductID
-JOIN stores s ON t.store_id = s.StoreID;
-
--- KPI Metrics
-
--- Total Revenue
-SELECT CEIL(SUM(revenue)) AS total_revenue FROM sales_master;
-
--- Total Transactions
-SELECT COUNT(*) AS total_transactions FROM transactions;
-
--- Total Quantity Sold
-SELECT SUM(quantity) AS total_quantities_sold FROM transactions;
-
--- Sales by Region
-
-SELECT
-region,
-CEIL(SUM(revenue)) AS total_sales
+    region,
+    ROUND(SUM(revenue), 2) AS total_revenue
 FROM sales_master
 GROUP BY region
-ORDER BY total_sales DESC;
+ORDER BY total_revenue DESC;
 
--- Sales by Category
-
+-- Sales by product category
 SELECT
-category,
-CEIL(SUM(revenue)) AS total_sales
+    category,
+    ROUND(SUM(revenue), 2) AS total_revenue
 FROM sales_master
 GROUP BY category
-ORDER BY total_sales DESC;
+ORDER BY total_revenue DESC;
 
--- Monthly Sales Trend
-
+-- Monthly sales trend (keep year and month together)
 SELECT
-MONTH(transaction_date) AS month,
-CEIL(SUM(revenue)) AS monthly_sales
+    DATE_FORMAT(transaction_date, '%Y-%m') AS sales_month,
+    ROUND(SUM(revenue), 2) AS monthly_revenue
 FROM sales_master
-GROUP BY month
-ORDER BY month;
+GROUP BY YEAR(transaction_date), MONTH(transaction_date)
+ORDER BY YEAR(transaction_date), MONTH(transaction_date);
 
--- Top 10 Products
-
+-- Top 10 products by discounted revenue
 SELECT
-ProductName,
-CEIL(SUM(revenue)) AS total_sales
+    product_name,
+    ROUND(SUM(revenue), 2) AS total_revenue
 FROM sales_master
-GROUP BY ProductName
-ORDER BY total_sales DESC
+GROUP BY product_name
+ORDER BY total_revenue DESC
 LIMIT 10;
