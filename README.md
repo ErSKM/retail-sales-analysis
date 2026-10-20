@@ -111,7 +111,7 @@ SELECT
     p.CostPrice,
     t.discount,
     (t.quantity * p.UnitPrice * (1 - t.discount)) AS revenue,
-    ((p.UnitPrice - p.CostPrice) * t.quantity) AS profit
+    ((p.UnitPrice * (1 - t.discount) - p.CostPrice) * t.quantity) AS profit
 FROM transactions t
 JOIN products p ON t.product_id = p.ProductID
 JOIN stores s ON t.store_id = s.StoreID;
