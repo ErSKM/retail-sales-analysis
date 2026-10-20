@@ -1,241 +1,76 @@
-# Retail Sales Analysis (Excel • SQL • Power BI)
+# Retail Sales Analysis — Excel, MySQL & Power BI
 
-## Project Overview
+## Executive Summary
 
-This project demonstrates an end-to-end retail sales analysis workflow using **Excel, SQL, and Power BI**.
+This project uses one retail transactions dataset across Excel, MySQL, and Power BI to review sales, product, regional, and monthly performance. The repository reports 5,000 transactions, 200 customers, 50 products, and 5 stores.
 
-The goal of this project was to explore a retail dataset, prepare the data, perform analytical queries, and build interactive dashboards to uncover insights about sales performance, product trends, and regional revenue.
+The project is relevant to retail sales, reporting, and BI analyst roles because it connects data preparation, metric calculation, SQL analysis, and dashboard reporting. The source and license for the dataset are not documented in the current project files, so the results should be treated as analysis of the included project dataset rather than a claim about a named retailer.
 
-Instead of using only one tool, the same dataset was analyzed using **multiple tools across the data analytics stack** to simulate how real-world analysts work with data.
+## Business Problem
 
-The project includes:
+A retail team needs a consistent view of what is selling, where sales are concentrated, and how discounts affect gross profit. The analysis is intended to support decisions about which regions, categories, and products deserve further commercial review.
 
-* Data preparation and dashboard creation in **Excel**
-* Data modeling and analysis using **SQL**
-* Interactive visualization using **Power BI**
+Questions addressed:
 
----
+- Which regions and categories contribute the most sales?
+- Which products lead by discounted sales value?
+- How do sales and modeled gross profit change over time?
+- Where should the team investigate product mix, discounts, or seasonal demand?
 
-# Dataset Description
+## Methodology
 
-The dataset represents retail business transactions and contains four main tables.
+The dataset contains customer, product, store, and transaction tables. The workflow prepares the data in Excel, stores the four entities in MySQL, builds a sales view, and connects the analytical output to Power BI.
 
-| Dataset      | Description                              |
-| ------------ | ---------------------------------------- |
-| Customers    | Customer demographic information         |
-| Products     | Product details including price and cost |
-| Stores       | Store location and region                |
-| Transactions | Individual sales transactions            |
+| Metric | Definition used |
+|---|---|
+| Revenue | `quantity × unit_price × (1 − discount)`; discount is stored as a fraction, such as 0.10 for 10% |
+| Gross profit | `quantity × (unit_price × (1 − discount) − cost_price)`; before operating costs, taxes, shipping, and other expenses |
+| Transactions | Count of distinct `transaction_id` values |
+| Units sold | Sum of transaction `quantity` |
+| Monthly revenue | Sum of revenue grouped by calendar year and month |
 
-### Dataset Summary
+The discount and profit definitions are documented in the SQL view. The calculations do not include returns or non-product operating expenses.
 
-| Metric       | Value |
-| ------------ | ----- |
-| Transactions | 5,000 |
-| Customers    | 200   |
-| Products     | 50    |
-| Stores       | 5     |
+## Skills
 
----
+- **Excel:** data preparation, calculated fields, PivotTables, dashboard reporting
+- **MySQL:** relational tables, joins, views, aggregation, KPI calculations
+- **Power BI:** interactive reporting and filters
+- **Analytics:** metric definition, regional and product comparison, trend interpretation
 
-# Stage 1 — Excel Analysis
+## Results & Business Recommendation
 
-## Objective
+| Evidence in the existing analysis | Practical follow-up |
+|---|---|
+| The East region is reported as the highest-revenue region at approximately ₹5.6M. | Review its leading products, discounting, and store mix before shifting resources. |
+| Electronics is reported as the leading category. | Compare its gross profit and unit trends with other categories before expanding promotions. |
+| The dashboard shows mid-year monthly sales peaks. | Use this as a planning signal, then confirm the pattern against additional years before treating it as seasonality. |
+| A small group of products contributes a large share of sales. | Check product availability and margin concentration; the current project does not include inventory data. |
 
-Perform initial data preparation and build a dashboard using Microsoft Excel.
+These are descriptive findings from the included dataset. They do not show that a promotion caused a sales change or establish what would happen after a business action.
 
-## Tasks Performed
+### Dashboard previews
 
-* Combined multiple datasets into a **master sales table**
-* Created calculated fields:
-
-  * Revenue
-  * Profit
-  * Month
-  * Year
-* Used **Pivot Tables** to analyze sales data
-* Built an interactive **Excel dashboard**
-
-## Excel Dashboard Features
-
-* KPI Cards
-
-  * Total Revenue
-  * Total Profit
-  * Total Transactions
-  * Units Sold
-
-* Sales by Region
-
-* Sales by Product Category
-
-* Monthly Sales Trend
-
-* Top Performing Products
-
-Excel was used to understand the dataset structure and perform quick exploratory analysis.
-
----
-
-# Stage 2 — SQL Data Modeling & Analysis
-
-## Objective
-
-Store the dataset in a relational database and perform structured analysis using SQL.
-
-The dataset was imported into **MySQL** and organized into normalized tables.
-
-### Database Tables
-
-```
-customers
-products
-stores
-transactions
-```
-
-SQL joins were used to combine these tables into an analytical dataset.
-
-### Example SQL Query
-
-```sql
-SELECT 
-    t.transaction_id,
-    t.transaction_date,
-    MONTH(t.transaction_date) AS month,
-    p.ProductName,
-    p.Category,
-    s.Region,
-    t.quantity,
-    p.UnitPrice,
-    p.CostPrice,
-    t.discount,
-    (t.quantity * p.UnitPrice * (1 - t.discount)) AS revenue,
-    ((p.UnitPrice * (1 - t.discount) - p.CostPrice) * t.quantity) AS profit
-FROM transactions t
-JOIN products p ON t.product_id = p.ProductID
-JOIN stores s ON t.store_id = s.StoreID;
-```
-
-This query created an **analytical dataset** used later in Power BI.
-
----
-
-# Stage 3 — Power BI Dashboard
-
-## Objective
-
-Create an interactive dashboard to visualize sales performance.
-
-The SQL analytical dataset was connected to **Power BI**.
-
-### Dashboard Components
-
-KPIs
-
-* Total Revenue
-* Total Profit
-* Total Transactions
-* Units Sold
-
-Visualizations
-
-* Revenue by Region
-* Revenue by Product Category
-* Monthly Revenue Trend
-* Top 10 Products by Revenue
-
-Filters
-
-* Region
-* Product Category
-* Month
-
-These filters allow users to interactively explore sales performance.
-
----
-
-# Key Insights
-
-The analysis revealed several important business insights:
-
-* The **East region generates the highest revenue (~₹5.6M)**.
-* **Electronics is the leading product category**.
-* Sales show **seasonal trends with peaks during mid-year months**.
-* A small group of products contributes a **large share of total revenue**.
-
-These insights demonstrate how data visualization can support business decision-making.
-
----
-
-# Tools Used
-
-| Tool     | Purpose                                   |
-| -------- | ----------------------------------------- |
-| Excel    | Data cleaning and exploratory analysis    |
-| MySQL    | Database storage and SQL querying         |
-| Power BI | Interactive dashboard creation            |
-| GitHub   | Project documentation and version control |
-
----
-
-# Project Structure
-
-```
-datasets
-│
-├ customers.csv
-├ products.csv
-├ stores.csv
-└ transactions.csv
-
-excel
-│
-└ Retail_Sales_Analysis_Excel_Project.xlsx
-
-sql
-│
-└ retail_sales_analysis.sql
-
-power-bi
-│
-└ retail_sales_dashboard.pbix
-
-images
-│
-├ excel_dashboard.png
-└ powerbi_dashboard.png
-```
-
----
-
-# Dashboard Preview
-
-### Excel Dashboard
+**Excel dashboard**
 
 ![Excel Dashboard](images/excel_dashboard.png)
 
-### Power BI Dashboard
+**Power BI dashboard**
 
 ![Power BI Dashboard](images/powerbi_dashboard.png)
 
----
+## Next Steps
 
-# Learning Outcomes
+1. Add the dataset source, generation method, and license to the repository.
+2. Reconcile the headline findings against the saved workbook, SQL outputs, and Power BI visuals.
+3. Add margin by region/category and discount-depth analysis.
+4. Add multiple years or a comparison period before making seasonal recommendations.
+5. Add inventory and returns data before making stock or net-sales claims.
 
-This project helped me strengthen my understanding of:
+### Run and review
 
-* Data cleaning and preparation
-* SQL joins and analytical queries
-* Dashboard design and visualization
-* Data storytelling
-* End-to-end analytics workflow
+- Open `excel/Retail_Sales_Analysis_Excel_Project.xlsx` for the Excel dashboard.
+- Run `sql/retail_sales_analysis.sql` in MySQL after loading the CSV files from `datasets/`.
+- Open `power-bi/retail_sales_dashboard.pbix` in Power BI Desktop.
 
-It also demonstrates how the same dataset can be analyzed using multiple tools across the analytics stack.
-
----
-
-# Author
-
-**Salahuddin K M**
-Aspiring Data Analyst focused on building practical projects using **Excel, SQL, Power BI, and Python**.
+**Author:** Salahuddin K M · [Portfolio](https://erskm.github.io) · [GitHub](https://github.com/ErSKM)
